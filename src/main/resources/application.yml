@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: PetTrack
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pettrack
+    username: postgres
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+pettrack:
+  jwt:
+    secret: pettrack-secret-key-muito-segura-256bits-minimo-para-funcionar-ok
+    expiration-ms: 86400000
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.pettrack: DEBUG
+    org.springframework.security: INFO
