@@ -9,6 +9,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@Builder
 public class ItemEstoqueRequest {
 
     @NotNull(message = "Produto é obrigatório")
