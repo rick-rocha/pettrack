@@ -19,6 +19,7 @@ import com.pettrack.modules.estoque.domain.enums.StatusItemEstoque;
 import com.pettrack.modules.estoque.repository.ItemEstoqueRepository;
 import com.pettrack.modules.produto.domain.entity.Produto;
 import com.pettrack.modules.produto.repository.ProdutoRepository;
+import com.pettrack.modules.rastreamento.service.RastreamentoService;
 import com.pettrack.shared.exception.NegocioException;
 import com.pettrack.shared.exception.RecursoNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class EcommerceService {
     private final GaiolaRepository gaiolaRepository;
     private final ProdutoRepository produtoRepository;
     private final ItemEstoqueRepository itemEstoqueRepository;
+    private final RastreamentoService rastreamentoService;
 
     // ==================== PEDIDOS ====================
 
@@ -113,6 +115,13 @@ public class EcommerceService {
         log.info("Pagamento confirmado — Pedido: {}, Cliente: {}",
                 pedido.getNumeroPedido(), pedido.getClienteNome());
 
+        rastreamentoService.registrar(pedido,
+                StatusPedido.PEDIDO_CRIADO,
+                StatusPedido.AGUARDANDO_SEPARACAO,
+                null,
+                "CD — E-commerce",
+                "Pagamento confirmado");
+
         return toPedidoResponse(pedidoRepository.save(pedido));
     }
 
@@ -142,6 +151,14 @@ public class EcommerceService {
         }
 
         pedido.setStatus(StatusPedido.AGUARDANDO_EMBALAGEM);
+
+        rastreamentoService.registrar(pedido,
+                StatusPedido.AGUARDANDO_SEPARACAO,
+                StatusPedido.AGUARDANDO_EMBALAGEM,
+                null,
+                "CD — Estoque",
+                "Itens separados das baias com FIFO por validade");
+
         return toPedidoResponse(pedidoRepository.save(pedido));
     }
 
@@ -154,6 +171,14 @@ public class EcommerceService {
         }
 
         pedido.setStatus(StatusPedido.EMBALADO);
+
+        rastreamentoService.registrar(pedido,
+                StatusPedido.AGUARDANDO_EMBALAGEM,
+                StatusPedido.EMBALADO,
+                null,
+                "CD — E-commerce",
+                "Pedido embalado e etiquetado");
+
         return toPedidoResponse(pedidoRepository.save(pedido));
     }
 
@@ -172,6 +197,15 @@ public class EcommerceService {
 
         pedido.setGaiola(gaiola);
         pedido.setStatus(StatusPedido.NA_GAIOLA);
+
+        rastreamentoService.registrar(pedido,
+                StatusPedido.EMBALADO,
+                StatusPedido.NA_GAIOLA,
+                null,
+                "CD — E-commerce",
+                "Pedido adicionado à gaiola: " + gaiola.getCodigo()
+                        + " — Região: " + gaiola.getRegiaoCD());
+
         return toPedidoResponse(pedidoRepository.save(pedido));
     }
 
@@ -264,7 +298,17 @@ public class EcommerceService {
         }
 
         gaiola.setStatus(StatusGaiola.FECHADA);
-        gaiola.getPedidos().forEach(p -> p.setStatus(StatusPedido.NO_PALLET));
+
+        gaiola.getPedidos().forEach(p -> {
+            p.setStatus(StatusPedido.NO_PALLET);
+            rastreamentoService.registrar(p,
+                    StatusPedido.NA_GAIOLA,
+                    StatusPedido.NO_PALLET,
+                    null,
+                    "CD — Transporte",
+                    "Gaiola fechada e destinada ao pallet");
+        });
+
         return toGaiolaResponse(gaiolaRepository.save(gaiola));
     }
 

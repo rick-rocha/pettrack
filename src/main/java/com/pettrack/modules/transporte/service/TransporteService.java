@@ -7,6 +7,7 @@ import com.pettrack.modules.ecommerce.repository.GaiolaRepository;
 import com.pettrack.modules.ecommerce.repository.PedidoRepository;
 import com.pettrack.modules.filial.domain.entity.Filial;
 import com.pettrack.modules.filial.repository.FilialRepository;
+import com.pettrack.modules.rastreamento.service.RastreamentoService;
 import com.pettrack.modules.transporte.domain.entity.Pallet;
 import com.pettrack.modules.transporte.domain.entity.PalletGaiola;
 import com.pettrack.modules.transporte.domain.entity.Viagem;
@@ -47,6 +48,7 @@ public class TransporteService {
     private final VeiculoRepository veiculoRepository;
     private final FilialRepository filialRepository;
     private final UsuarioRepository usuarioRepository;
+    private final RastreamentoService rastreamentoService;
 
     // ==================== PALLETS ====================
 
@@ -243,6 +245,13 @@ public class TransporteService {
                     pg.getGaiola().getPedidos().forEach(pedido -> {
                         pedido.setStatus(StatusPedido.EM_TRANSITO_CD_FILIAL);
                         pedidoRepository.save(pedido);
+                        rastreamentoService.registrar(pedido,
+                                StatusPedido.NO_PALLET,
+                                StatusPedido.EM_TRANSITO_CD_FILIAL,
+                                null,
+                                "Em trânsito — " + viagem.getVeiculo().getPlaca(),
+                                "Caminhão partiu para filial: "
+                                        + viagem.getFilialDestino().getNome());
                     }));
         });
 
@@ -266,12 +275,16 @@ public class TransporteService {
         viagem.setDataChegada(LocalDateTime.now());
 
         viagem.getPallets().forEach(vp -> {
-            vp.getPallet().setStatus(StatusPallet.ENTREGUE_FILIAL);
-            palletRepository.save(vp.getPallet());
             vp.getPallet().getGaiolas().forEach(pg ->
                     pg.getGaiola().getPedidos().forEach(pedido -> {
                         pedido.setStatus(StatusPedido.RECEBIDO_NA_FILIAL);
                         pedidoRepository.save(pedido);
+                        rastreamentoService.registrar(pedido,
+                                StatusPedido.EM_TRANSITO_CD_FILIAL,
+                                StatusPedido.RECEBIDO_NA_FILIAL,
+                                null,
+                                viagem.getFilialDestino().getNome(),
+                                "Caminhão chegou na filial");
                     }));
         });
 
